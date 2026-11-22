@@ -91,8 +91,16 @@ var App = (function () {
 
   function armNotifications() {
     if (!Notify.available()) return;
+    var settings = Settings.load();
+    var now = new Date();
+
     Notify.requestPermission().then(function () {
-      return Notify.arm(Settings.load(), new Date());
+      return Alarms.next();
+    }).then(function (alarm) {
+      /* The phone's own alarm decides whether tomorrow is a work day. It can only
+         speak for the next work day, so that is the only one ever held back — an app
+         that silently stops nudging for a fortnight has deleted itself. */
+      return Notify.arm(settings, now, { held: Alarms.heldDayKeys(alarm, settings, now) });
     }).catch(function () { /* a refused permission is the user's call, not an error */ });
   }
 

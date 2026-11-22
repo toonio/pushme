@@ -44,8 +44,9 @@ var Notify = (function () {
    * Pure — no plugin, no clock of its own — so the decision of what to send can be
    * tested without a device, which is the half of this module most likely to be wrong.
    */
-  function planNudges(settings, from, daysAhead) {
+  function planNudges(settings, from, daysAhead, heldKeys) {
     if (!settings.notifications) return [];
+    var held = heldKeys || [];
     var out = [];
     var start = from || new Date();
     var base = new Date(start.getTime());
@@ -59,6 +60,10 @@ var Notify = (function () {
          ends on Wednesday still leaves Thursday's nudges armed. */
       if (settings.pauseUntil && Utils.localDayKey(day) <= String(settings.pauseUntil)) continue;
 
+      /* A day the alarm check decided is a day off. Only ever the next work day —
+         see www/js/alarms.js for why guessing further ahead is worse than useless. */
+      if (held.indexOf(Utils.localDayKey(day)) > -1) continue;
+
       Schedule.nudgesFor(settings, day).forEach(function (n) {
         if (n.at <= start) return;          // never schedule something already past
         out.push({
@@ -71,11 +76,11 @@ var Notify = (function () {
   }
 
   /** Cancel everything previously set, then arm the next fortnight. */
-  function arm(settings, now) {
+  function arm(settings, now, opts) {
     var p = plugin();
     if (!p) return Promise.resolve({ armed: 0, available: false });
 
-    var wanted = planNudges(settings, now || new Date(), DAYS_AHEAD);
+    var wanted = planNudges(settings, now || new Date(), DAYS_AHEAD, (opts || {}).held);
 
     return cancelAll().then(function () {
       if (!wanted.length) return { armed: 0, available: true };

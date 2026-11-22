@@ -104,10 +104,10 @@ var Views = (function () {
     'set-dress': 'dressMin', 'set-budget': 'budgetMin', 'set-buffer': 'bufferMin',
     'set-rest': 'restSec', 'set-target': 'weeklyTarget'
   };
-  var TIME_FIELDS = { 'set-wake': 'wakeAlarm', 'set-leave': 'leaveBy' };
+  var TIME_FIELDS = { 'set-wake': 'wakeAlarm', 'set-leave': 'leaveBy', 'set-alarm-before': 'alarmBefore' };
   var CHECKS = {
     'set-sound': 'sound', 'set-vibrate': 'vibrate', 'set-awake': 'keepAwake',
-    'set-notify': 'notifications'
+    'set-notify': 'notifications', 'set-require-alarm': 'requireAlarm'
   };
 
   function settings(onChange) {
@@ -120,6 +120,7 @@ var Views = (function () {
 
     describeSchedule(s);
     describeNotifications(s);
+    describeAlarmCheck(s);
     UI.setText('routine-source', s.days ? 'yours' : 'default');
     drawRoutine(onChange);
 
@@ -221,6 +222,7 @@ var Views = (function () {
     var s = Settings.save(patch);
     describeSchedule(s);
     describeNotifications(s);
+    describeAlarmCheck(s);
     onChange();
   }
 
@@ -253,6 +255,31 @@ var Views = (function () {
       text = 'Armed for the next ' + Notify.DAYS_AHEAD + ' days, re-armed every time you open the app.';
     }
     UI.setText('set-notify-status', text);
+  }
+
+  /* The alarm check is a guess, and a guess you cannot see is a bug waiting to be
+     blamed on something else. This says exactly what it can and cannot know. */
+  function describeAlarmCheck(s) {
+    if (!s.requireAlarm) {
+      UI.setText('set-alarm-status', 'Off: you will be nudged every work day regardless of your alarms.');
+      return;
+    }
+    if (!Alarms.available()) {
+      UI.setText('set-alarm-status', 'This build cannot read the phone’s alarms — only the installed app can.');
+      return;
+    }
+    Alarms.next().then(function (alarm) {
+      var v = Alarms.verdict(alarm, Settings.load(), new Date());
+      var head = alarm === null ? 'No alarm set. '
+               : alarm === undefined ? ''
+               : 'Next alarm ' + Utils.DAY_NAMES[alarm.getDay()] + ' at ' +
+                 Utils.formatHM(Utils.minutesOfDay(alarm)) + '. ';
+      var tail = v.gate === 'hold' ? 'Nudges for ' + v.dayKey + ' are off: ' + v.reason + '.'
+               : v.gate === 'go' ? 'Nudges for ' + v.dayKey + ' are on: ' + v.reason + '.'
+               : 'No opinion: ' + v.reason + '.';
+      UI.setText('set-alarm-status', head + tail +
+        ' Android gives the time of the next alarm and nothing else — no label, no app — so this is a guess, checked each time you open pushme. Only the next work day is ever held back.');
+    });
   }
 
   function drawRoutine(onChange) {
@@ -354,6 +381,7 @@ var Views = (function () {
 
   return {
     progress: progress, history: history, settings: settings,
-    describeNotifications: describeNotifications, describeBuild: describeBuild
+    describeNotifications: describeNotifications, describeBuild: describeBuild,
+    describeAlarmCheck: describeAlarmCheck
   };
 })();

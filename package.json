@@ -8,7 +8,8 @@
     "test": "node tools/test-all.js",
     "stamp": "node tools/stamp-build.js",
     "sync": "npm run stamp && npx cap sync android",
-    "serve": "python -m http.server 8787 --directory www"
+    "serve": "python -m http.server 8787 --directory www",
+    "icons": "python tools/make-icon.py"
   },
   "dependencies": {
     "@capacitor/android": "^8.6.2",
@@ -17,7 +18,8 @@
     "@capgo/capacitor-updater": "^8.54.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^8.6.2"
+    "@capacitor/cli": "^8.6.2",
+    "@capacitor/assets": "^4.0.0"
   },
   "engines": {
     "node": ">=22"

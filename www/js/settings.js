@@ -27,7 +27,7 @@ var Settings = (function () {
     /* Nudges. */
     notifications: true,
     pauseUntil: null,          // ISO date string; no nudges on or before this day
-    requireAlarm: false,       // only nudge if a phone alarm is set before alarmBefore
+    requireAlarm: true,        // only nudge if a phone alarm is set before alarmBefore
     alarmBefore: '08:00',
 
     /* Scoring. */

@@ -79,6 +79,7 @@ jobs:
           npx cap add android
           node tools/patch-android.js
           npx cap sync android
+          npx @capacitor/assets generate --android
 
       - name: Build the APK
         run: |

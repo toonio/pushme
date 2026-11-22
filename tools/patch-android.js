@@ -47,3 +47,43 @@ PERMISSIONS.forEach(name => {
 
 fs.writeFileSync(manifestPath, manifest);
 console.log(added.length ? 'added permissions: ' + added.join(', ') : 'permissions already present');
+
+/* ------------------------- the NextAlarm plugin -------------------------- */
+
+const PKG = 'fr.toonio.pushme';
+const javaDir = path.join(root, 'android', 'app', 'src', 'main', 'java', ...PKG.split('.'));
+
+fs.copyFileSync(
+  path.join(root, 'native', 'android', 'NextAlarmPlugin.java'),
+  path.join(javaDir, 'NextAlarmPlugin.java')
+);
+console.log('copied NextAlarmPlugin.java');
+
+/* Capacitor only loads a plugin that lives in the app's own module if the activity
+   registers it, and it has to happen BEFORE super.onCreate builds the bridge. */
+const activityPath = path.join(javaDir, 'MainActivity.java');
+let activity = fs.readFileSync(activityPath, 'utf8');
+
+if (activity.indexOf('NextAlarmPlugin.class') > -1) {
+  console.log('MainActivity already registers NextAlarm');
+} else {
+  activity = `package ${PKG};
+
+import android.os.Bundle;
+
+import com.getcapacitor.BridgeActivity;
+
+public class MainActivity extends BridgeActivity {
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        // Must come before super.onCreate: that is where the bridge is built, and a
+        // plugin registered afterwards is a plugin the web layer never sees.
+        registerPlugin(NextAlarmPlugin.class);
+        super.onCreate(savedInstanceState);
+    }
+}
+`;
+  fs.writeFileSync(activityPath, activity);
+  console.log('rewrote MainActivity.java to register NextAlarm');
+}
