@@ -104,14 +104,23 @@ var Progression = (function () {
     return { target: Math.max(1, last.target), basis: 'repeat', calibrating: false, backedOff: false };
   }
 
-  /** Today's whole plan for a day key. */
-  function planFor(sessions, dayKey) {
-    var day = Exercises.day(dayKey);
+  /**
+   * Today's whole plan for a day key.
+   * `dayOverride` lets the caller pass the user's edited routine; without it the
+   * catalogue's own day is used, so this stays callable from tests with no settings.
+   */
+  function planFor(sessions, dayKey, dayOverride) {
+    var day = dayOverride || Exercises.day(dayKey);
     return {
       day: day.key,
       name: day.name,
       focus: day.focus,
-      items: day.items.map(function (item) {
+      /* An edited routine can name an exercise the catalogue no longer has. Dropping
+         it is the only safe move: a plan built around `undefined.type` would throw on
+         the one morning the app exists to rescue. */
+      items: day.items.filter(function (item) {
+        return !!Exercises.get(item.key);
+      }).map(function (item) {
         var ex = Exercises.get(item.key);
         var t = targetFor(sessions, item, ex);
         return {
