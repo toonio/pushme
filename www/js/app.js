@@ -28,10 +28,21 @@ var App = (function () {
     bindTabs();
     bindToday();
     bindSession();
+
+    /* Announce the bundle before anything else can throw. Capgo puts a freshly
+       downloaded bundle on probation and rolls it back on the next launch unless the
+       app says it reached this point — which is exactly the protection wanted, and
+       exactly the thing that silently breaks if it is called too late. */
+    Updater.loadLocal().then(function () {
+      Updater.notifyReady();
+      Views.describeBuild();
+      UI.setText('build-note',
+        (Notify.available() ? 'Installed build' : 'Browser build') +
+        ' · version ' + Updater.version().version + ' (' + Updater.version().commit + ')' +
+        (Notify.available() ? '' : ' — everything works except waking you up.'));
+    });
+
     Views.settings(settingsChanged);
-    UI.setText('build-note', Notify.available()
-      ? 'Installed build — nudges available.'
-      : 'Browser build — everything works except waking you up.');
 
     DB.allSessions().then(function (rows) {
       state.sessions = rows;

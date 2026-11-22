@@ -1,0 +1,18 @@
+{
+  "appId": "fr.toonio.pushme",
+  "appName": "pushme",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "LocalNotifications": {
+      "iconColor": "#4cc9a0"
+    },
+    "CapacitorUpdater": {
+      "autoUpdate": false,
+      "resetWhenUpdate": true,
+      "appReadyTimeout": 10000
+    }
+  }
+}

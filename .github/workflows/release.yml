@@ -1,0 +1,108 @@
+name: release
+
+# Two artefacts come out of here:
+#   pushme-<version>.apk       the native shell, installed by hand, rarely
+#   pushme-www-<version>.zip   the web bundle, which the app downloads by itself
+#
+# Push a tag (v0.2.0) or run this by hand with a version. The zip is what makes a
+# fix reachable without plugging the phone into anything.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build, e.g. 0.2.0'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Work out the version
+        id: v
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            V="${{ github.event.inputs.version }}"
+          else
+            V="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "Building $V"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      # A release that fails its own tests is not a release.
+      - name: Test
+        run: node tools/test-all.js
+
+      - name: Install
+        run: npm ci
+
+      - name: Stamp the build
+        run: node tools/stamp-build.js "${{ steps.v.outputs.version }}"
+
+      # The OTA bundle: index.html at the root of the zip, which is what the updater
+      # plugin unpacks over the installed web layer.
+      - name: Pack the web bundle
+        run: |
+          cd www
+          zip -qr "../pushme-www-${{ steps.v.outputs.version }}.zip" .
+          cd ..
+          unzip -l "pushme-www-${{ steps.v.outputs.version }}.zip" | head -20
+
+      - name: Generate the Android project
+        run: |
+          npx cap add android
+          node tools/patch-android.js
+          npx cap sync android
+
+      - name: Build the APK
+        run: |
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk \
+             "../pushme-${{ steps.v.outputs.version }}.apk"
+
+      - name: Keep the artefacts even if the release step is skipped
+        uses: actions/upload-artifact@v4
+        with:
+          name: pushme-${{ steps.v.outputs.version }}
+          path: |
+            pushme-*.apk
+            pushme-www-*.zip
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            pushme-${{ steps.v.outputs.version }}.apk
+            pushme-www-${{ steps.v.outputs.version }}.zip
+          body: |
+            **pushme ${{ steps.v.outputs.version }}**
+
+            - `pushme-${{ steps.v.outputs.version }}.apk` — the app. Only needed when
+              the native shell changes (a new plugin, a new permission).
+            - `pushme-www-${{ steps.v.outputs.version }}.zip` — the web bundle. The
+              installed app finds this by itself: Settings → Updates → Check.
+
+            This is a debug-signed build for sideloading, not a Play Store release.

@@ -1,0 +1,25 @@
+{
+  "name": "pushme",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Ten minutes of shoulder and core work, defended from breakfast.",
+  "license": "MIT",
+  "scripts": {
+    "test": "node tools/test-all.js",
+    "stamp": "node tools/stamp-build.js",
+    "sync": "npm run stamp && npx cap sync android",
+    "serve": "python -m http.server 8787 --directory www"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.2",
+    "@capacitor/core": "^8.6.2",
+    "@capacitor/local-notifications": "^8.3.1",
+    "@capgo/capacitor-updater": "^8.54.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.2"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

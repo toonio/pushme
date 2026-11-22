@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1217">
 <title>pushme</title>
-<link rel="stylesheet" href="css/styles.css?v=1">
+<link rel="stylesheet" href="css/styles.css?v=0.1.0-da9dd00">
 </head>
 <body>
 
@@ -140,6 +140,18 @@
     </div>
 
     <div class="card">
+      <div class="card-head">
+        <h2>Updates</h2>
+        <span id="update-version" class="muted"></span>
+      </div>
+      <p id="update-status" class="note"></p>
+      <div class="row">
+        <button id="update-check" class="btn" type="button">Check for an update</button>
+        <button id="update-apply" class="btn btn-primary" type="button" hidden>Install it</button>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-head"><h2>Your data</h2></div>
       <div class="row">
         <button id="data-export" class="btn" type="button">Export</button>
@@ -228,18 +240,19 @@
 
 <div id="toast" hidden></div>
 
-<script src="js/utils.js?v=1"></script>
-<script src="js/exercises.js?v=1"></script>
-<script src="js/schedule.js?v=1"></script>
-<script src="js/progression.js?v=1"></script>
-<script src="js/settings.js?v=1"></script>
-<script src="js/db.js?v=1"></script>
-<script src="js/sound.js?v=1"></script>
-<script src="js/notify.js?v=1"></script>
-<script src="js/session.js?v=1"></script>
-<script src="js/score.js?v=1"></script>
-<script src="js/ui.js?v=1"></script>
-<script src="js/views.js?v=1"></script>
-<script src="js/app.js?v=1"></script>
+<script src="js/utils.js?v=0.1.0-da9dd00"></script>
+<script src="js/exercises.js?v=0.1.0-da9dd00"></script>
+<script src="js/schedule.js?v=0.1.0-da9dd00"></script>
+<script src="js/progression.js?v=0.1.0-da9dd00"></script>
+<script src="js/settings.js?v=0.1.0-da9dd00"></script>
+<script src="js/db.js?v=0.1.0-da9dd00"></script>
+<script src="js/sound.js?v=0.1.0-da9dd00"></script>
+<script src="js/notify.js?v=0.1.0-da9dd00"></script>
+<script src="js/session.js?v=0.1.0-da9dd00"></script>
+<script src="js/score.js?v=0.1.0-da9dd00"></script>
+<script src="js/updater.js?v=0.1.0-da9dd00"></script>
+<script src="js/ui.js?v=0.1.0-da9dd00"></script>
+<script src="js/views.js?v=0.1.0-da9dd00"></script>
+<script src="js/app.js?v=0.1.0-da9dd00"></script>
 </body>
 </html>

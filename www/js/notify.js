@@ -86,7 +86,6 @@ var Notify = (function () {
             title: n.title,
             body: n.body,
             schedule: { at: n.at, allowWhileIdle: true },
-            smallIcon: 'ic_stat_icon',
             extra: { kind: n.kind }
           };
         })

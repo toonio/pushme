@@ -170,6 +170,50 @@ var Views = (function () {
     });
 
     bindData(onChange);
+    bindUpdates();
+  }
+
+  /* -------------------------------- updates ------------------------------- */
+
+  var found = null;
+
+  function bindUpdates() {
+    describeBuild();
+
+    UI.on('update-check', 'click', function () {
+      UI.setText('update-status', 'Asking GitHub…');
+      UI.show('update-apply', false);
+      Updater.check().then(function (r) {
+        found = r.newer ? r : null;
+        UI.show('update-apply', !!r.newer);
+        UI.setText('update-status', r.newer
+          ? 'Version ' + r.version + ' is available.' + (r.notes ? ' ' + r.notes : '')
+          : 'No update: ' + r.reason + '.');
+      });
+    });
+
+    UI.on('update-apply', 'click', function () {
+      if (!found) return;
+      if (!Updater.available()) {
+        UI.setText('update-status',
+          'This is the browser build — reload the page to get the newest web files. ' +
+          'Over-the-air updates only apply to the installed app.');
+        return;
+      }
+      UI.setText('update-status', 'Downloading ' + found.version + '…');
+      Updater.apply(found).catch(function (e) {
+        UI.setText('update-status', 'That did not work: ' + e.message);
+      });
+    });
+  }
+
+  function describeBuild() {
+    var v = Updater.version();
+    UI.setText('update-version', v.version + ' · ' + v.commit);
+    UI.setText('update-status', Updater.available()
+      ? 'The web half of the app updates over the air from the releases of ' + Updater.REPO +
+        '. A new plugin or permission still needs a new APK.'
+      : 'Browser build — it already runs whatever the server last served.');
   }
 
   function commit(key, value, onChange) {
@@ -310,6 +354,6 @@ var Views = (function () {
 
   return {
     progress: progress, history: history, settings: settings,
-    describeNotifications: describeNotifications
+    describeNotifications: describeNotifications, describeBuild: describeBuild
   };
 })();

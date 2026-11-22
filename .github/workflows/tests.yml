@@ -1,0 +1,23 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  node:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The logic tests need nothing installed — they eval the plain scripts and run
+      # ten minutes of exercise in a millisecond. Keeping them dependency-free means
+      # a broken npm registry can never stop us knowing whether the maths is right.
+      - name: Run the logic tests
+        run: node tools/test-all.js
