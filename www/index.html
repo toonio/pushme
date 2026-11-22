@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1217">
+<title>pushme</title>
+<link rel="stylesheet" href="css/styles.css?v=1">
+</head>
+<body>
+
+<main id="views">
+
+  <!-- ─────────────────────────── Today ─────────────────────────── -->
+  <section id="view-today" class="view">
+    <header class="view-head">
+      <h1>pushme</h1>
+      <span id="today-date" class="muted"></span>
+    </header>
+
+    <div id="today-card" class="card phase-before">
+      <div id="today-phase" class="phase-label">—</div>
+      <div id="today-headline" class="headline">—</div>
+      <div id="today-sub" class="sub muted"></div>
+
+      <button id="today-start" class="btn btn-primary btn-big" type="button">Start</button>
+      <button id="today-resume" class="btn btn-warn" type="button" hidden>Resume the session you left</button>
+      <div id="today-timeline" class="timeline muted"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 id="today-plan-title">Today's plan</h2>
+        <span id="today-plan-budget" class="muted"></span>
+      </div>
+      <ul id="today-plan" class="plan"></ul>
+      <p id="today-calibrating" class="note" hidden>
+        These are starting numbers, not a prescription. Your first run of each replaces
+        them with what you actually managed.
+      </p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>This week</h2>
+        <span id="today-week-score" class="muted"></span>
+      </div>
+      <div id="today-week" class="weekdots"></div>
+      <div id="today-streak" class="sub muted"></div>
+    </div>
+
+    <p id="today-note" class="note" hidden></p>
+  </section>
+
+  <!-- ────────────────────────── Progress ───────────────────────── -->
+  <section id="view-progress" class="view" hidden>
+    <header class="view-head"><h1>Progress</h1></header>
+    <div class="card stats">
+      <div class="stat"><span id="stat-streak" class="stat-value">0</span><span class="stat-label">week streak</span></div>
+      <div class="stat"><span id="stat-sessions" class="stat-value">0</span><span class="stat-label">sessions</span></div>
+      <div class="stat"><span id="stat-minutes" class="stat-value">0</span><span class="stat-label">minutes</span></div>
+    </div>
+    <div id="progress-list"></div>
+    <p id="progress-empty" class="note" hidden>Nothing recorded yet. One session and this page starts earning its place.</p>
+  </section>
+
+  <!-- ─────────────────────────── History ───────────────────────── -->
+  <section id="view-history" class="view" hidden>
+    <header class="view-head">
+      <h1>History</h1>
+      <div class="month-nav">
+        <button id="month-prev" class="btn btn-ghost" type="button" aria-label="previous month">‹</button>
+        <span id="month-label"></span>
+        <button id="month-next" class="btn btn-ghost" type="button" aria-label="next month">›</button>
+      </div>
+    </header>
+    <div class="card">
+      <div id="month-grid" class="month-grid"></div>
+      <div class="legend">
+        <span><i class="sw full"></i>full</span>
+        <span><i class="sw half"></i>short</span>
+        <span><i class="sw miss"></i>missed</span>
+        <span><i class="sw open"></i>today</span>
+        <span><i class="sw nonday"></i>off</span>
+      </div>
+    </div>
+    <div id="history-list"></div>
+  </section>
+
+  <!-- ─────────────────────────── Settings ──────────────────────── -->
+  <section id="view-settings" class="view" hidden>
+    <header class="view-head"><h1>Settings</h1></header>
+
+    <div class="card">
+      <div class="card-head"><h2>Your morning</h2></div>
+      <label class="field"><span>Alarm</span><input id="set-wake" type="time" step="300"></label>
+      <label class="field"><span>Out of the door by</span><input id="set-leave" type="time" step="300"></label>
+      <label class="field"><span>Dressing &amp; coat (min)</span><input id="set-dress" type="number" min="0" max="60" inputmode="numeric"></label>
+      <label class="field"><span>Session budget (min)</span><input id="set-budget" type="number" min="3" max="60" inputmode="numeric"></label>
+      <label class="field"><span>Safety buffer (min)</span><input id="set-buffer" type="number" min="0" max="30" inputmode="numeric"></label>
+      <p id="set-derived" class="note"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>The session</h2></div>
+      <label class="field"><span>Rest between exercises (s)</span><input id="set-rest" type="number" min="0" max="120" inputmode="numeric"></label>
+      <label class="field"><span>Weekly target (of 4 days)</span><input id="set-target" type="number" min="1" max="4" inputmode="numeric"></label>
+      <label class="check"><input id="set-sound" type="checkbox"><span>Beeps</span></label>
+      <label class="check"><input id="set-vibrate" type="checkbox"><span>Vibrate</span></label>
+      <label class="check"><input id="set-awake" type="checkbox"><span>Keep the screen on during a session</span></label>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Nudges</h2></div>
+      <label class="check"><input id="set-notify" type="checkbox"><span>Notify me in the morning</span></label>
+      <label class="field"><span>Pause until (inclusive)</span><input id="set-pause" type="date"></label>
+      <button id="set-pause-clear" class="btn btn-ghost" type="button">Clear pause</button>
+      <p id="set-notify-status" class="note"></p>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>The routine</h2>
+        <span id="routine-source" class="muted"></span>
+      </div>
+      <p class="note">
+        This list is data, not code. If a physiotherapist gives you a different one, put
+        it in here — nothing else in the app needs to change.
+      </p>
+      <div class="seg" id="routine-days">
+        <button class="seg-btn on" data-day="A" type="button">Day A</button>
+        <button class="seg-btn" data-day="B" type="button">Day B</button>
+      </div>
+      <ul id="routine-list" class="routine"></ul>
+      <div class="row">
+        <select id="routine-pick" class="select"></select>
+        <button id="routine-add" class="btn" type="button">Add</button>
+      </div>
+      <button id="routine-restore" class="btn btn-ghost" type="button">Restore the default routine</button>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>Your data</h2></div>
+      <div class="row">
+        <button id="data-export" class="btn" type="button">Export</button>
+        <button id="data-import" class="btn" type="button">Import</button>
+        <input id="data-file" type="file" accept="application/json,.json" hidden>
+      </div>
+      <button id="data-reset" class="btn btn-ghost danger" type="button">Erase all sessions</button>
+      <p id="data-note" class="note"></p>
+    </div>
+
+    <p class="note" id="build-note"></p>
+  </section>
+</main>
+
+<nav id="tabs" class="tabs">
+  <button class="tab on" data-view="today" type="button"><span>Today</span></button>
+  <button class="tab" data-view="progress" type="button"><span>Progress</span></button>
+  <button class="tab" data-view="history" type="button"><span>History</span></button>
+  <button class="tab" data-view="settings" type="button"><span>Settings</span></button>
+</nav>
+
+<!-- ───────────────────── The session, full screen ───────────────────── -->
+<div id="session" class="session" hidden>
+
+  <header class="s-head">
+    <div id="s-pips" class="pips"></div>
+    <div class="s-clock">
+      <span id="s-elapsed">0:00</span>
+      <span id="s-budget" class="muted"></span>
+    </div>
+    <button id="s-quit" class="btn btn-ghost s-quit" type="button" aria-label="leave the session">✕</button>
+  </header>
+
+  <!-- working -->
+  <div id="s-work" class="s-panel">
+    <div class="s-name-row">
+      <h2 id="s-name">—</h2>
+      <span id="s-side" class="s-side" hidden></span>
+      <span id="s-set" class="s-set muted" hidden></span>
+    </div>
+    <div id="s-figure" class="s-figure"></div>
+    <div id="s-target-row" class="s-target">
+      <span id="s-target">0</span>
+      <span id="s-unit" class="s-unit">reps</span>
+    </div>
+    <div id="s-countdown" class="s-countdown" hidden>0:00</div>
+    <ul id="s-cues" class="s-cues"></ul>
+    <p id="s-mistake" class="s-mistake"></p>
+    <details id="s-more" class="s-more">
+      <summary>Not sure about this one?</summary>
+      <p id="s-more-body" class="note"></p>
+      <a id="s-video" class="btn btn-ghost" target="_blank" rel="noopener">Search a demo video</a>
+    </details>
+
+    <div class="s-controls">
+      <div id="s-stepper" class="stepper">
+        <button id="s-less" class="btn btn-step" type="button" aria-label="one fewer">−</button>
+        <span id="s-count">0</span>
+        <button id="s-more-btn" class="btn btn-step" type="button" aria-label="one more">+</button>
+      </div>
+      <button id="s-done" class="btn btn-primary btn-huge" type="button">Done</button>
+      <div class="row row-split">
+        <button id="s-ease" class="btn btn-ghost" type="button">Too hard today</button>
+        <button id="s-skip" class="btn btn-ghost" type="button">Skip</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- resting -->
+  <div id="s-rest" class="s-panel s-rest" hidden>
+    <div class="s-rest-label">Rest</div>
+    <div id="s-rest-count" class="s-rest-count">0:20</div>
+    <div class="s-rest-next">Next: <strong id="s-rest-next">—</strong></div>
+    <button id="s-rest-skip" class="btn btn-primary btn-big" type="button">Skip the rest</button>
+  </div>
+
+  <!-- finished -->
+  <div id="s-end" class="s-panel s-end" hidden>
+    <div class="s-end-mark">✓</div>
+    <h2 id="s-end-title">Banked.</h2>
+    <p id="s-end-sub" class="muted"></p>
+    <ul id="s-end-list" class="plan"></ul>
+    <button id="s-end-close" class="btn btn-primary btn-big" type="button">Done</button>
+  </div>
+</div>
+
+<div id="toast" hidden></div>
+
+<script src="js/utils.js?v=1"></script>
+<script src="js/exercises.js?v=1"></script>
+<script src="js/schedule.js?v=1"></script>
+<script src="js/progression.js?v=1"></script>
+<script src="js/settings.js?v=1"></script>
+<script src="js/db.js?v=1"></script>
+<script src="js/sound.js?v=1"></script>
+<script src="js/notify.js?v=1"></script>
+<script src="js/session.js?v=1"></script>
+<script src="js/score.js?v=1"></script>
+<script src="js/ui.js?v=1"></script>
+<script src="js/views.js?v=1"></script>
+<script src="js/app.js?v=1"></script>
+</body>
+</html>
