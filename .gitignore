@@ -1,0 +1,14 @@
+# build output
+node_modules/
+android/
+ios/
+dist/
+*.apk
+*.aab
+*.keystore
+*.jks
+
+# OS cruft
+Thumbs.db
+Desktop.ini
+.DS_Store
