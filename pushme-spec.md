@@ -228,6 +228,20 @@ from the session list — no aggregation stored, same as `followme`.
 - Asset URLs carry a version stamp, as in `followme`, via the same `bump-assets.py`
   discipline.
 
+## What is verified, and where
+
+Verified by `node tools/test-all.js` (runs in CI on every push, ~150 assertions): the
+deadline arithmetic, the progression rules, the session engine, the weekly scoring, and
+the alarm heuristic. Every one of those takes `now` as an argument, so a ten-minute
+workout runs in a millisecond and no branch waits for a Tuesday.
+
+Verified by hand in a browser at 393 CSS px: the five screens, a session driven end to
+end, the hold countdown and its cues, the summary, export and import round-tripping,
+and the routine editor forking a private copy of the catalogue.
+
+Verified by CI only as "it compiles and packages": the APK. Nothing below is exercised
+until it is on a phone — which is what the list immediately following is for.
+
 ## To verify on the device before relying on it
 
 1. **Does the stock Clock app register alarms via `setAlarmClock()`?** If not,
