@@ -42,12 +42,18 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
 
+      # packages: '' on purpose. The action's default list still asks for the obsolete
+      # `tools` package, which sdkmanager no longer serves and which fails the job. The
+      # runner image already carries an SDK, and the Gradle plugin fetches whatever
+      # platform and build-tools the project turns out to need once licences are in.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: ''
 
       # A release that fails its own tests is not a release.
       - name: Test
