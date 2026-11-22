@@ -20,17 +20,20 @@ var Score = (function () {
     var key = Utils.localDayKey(date);
     var todayKey = Utils.localDayKey(today || new Date());
 
-    if (!Schedule.isWorkDay(date)) return 'nonday';
-    if (key > todayKey) return 'future';
-
     var onDay = sessions.filter(function (s) {
       return s && Utils.localDayKey(new Date(s.date)) === key;
     });
-    if (!onDay.length) return (key === todayKey) ? 'open' : 'miss';
 
+    /* Work done on a day off is still work done, and the month grid should show it.
+       It cannot move a Mon–Thu count — `week` only ever looks at work days — but a
+       Sunday session that leaves no mark anywhere reads as the app having lost it. */
     if (onDay.some(function (s) { return s.completed && s.kind !== 'short'; })) return 'full';
     if (onDay.some(function (s) { return s.completed; })) return 'half';
-    return 'abandoned';
+
+    if (!Schedule.isWorkDay(date)) return 'nonday';
+    if (key > todayKey) return 'future';
+    if (onDay.length) return 'abandoned';
+    return (key === todayKey) ? 'open' : 'miss';
   }
 
   function valueOf(status) {

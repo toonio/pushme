@@ -1,8 +1,13 @@
 # build output
 node_modules/
-android/
-ios/
 dist/
+
+# The GENERATED Capacitor platforms, anchored to the repository root. Without the
+# leading slash these also swallow native/android/, where the one hand-written Java
+# file lives — which is how a build once reached CI with its own plugin missing.
+/android/
+/ios/
+
 *.apk
 *.aab
 *.keystore
