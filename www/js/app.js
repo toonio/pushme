@@ -382,7 +382,10 @@ var App = (function () {
     if (!events || !events.length) return;
     events.forEach(function (e) {
       if (e === 'stop') Sound.play('stop');
-      else if (e === 'go') { Sound.play('next'); newStep(); }
+      else if (e === 'go' || e === 'ready') { Sound.play('next'); newStep(); }
+      /* A separate cue for the tap, because arriving at a plank and starting one are
+         different moments and you are usually looking at the floor for the second. */
+      else if (e === 'begin') Sound.play('go');
       else if (e === 'tick') Sound.play('tick');
       else if (e === 'done') finishSession();
     });
@@ -422,9 +425,19 @@ var App = (function () {
       drawWorkStep(step);
     }
 
+    /* Waiting is not a step of its own, so it is redrawn every frame rather than
+       only when the step changes: the tap that ends it changes no step. */
+    var waiting = !!v.waiting;
+    UI.show('s-begin', waiting);
+    UI.show('s-ready-note', waiting);
+    UI.show('s-done', !waiting);
+    UI.show('s-ease', !waiting);        // nothing has been attempted yet to be hard
+    if (waiting) UI.setText('s-begin', 'Start the ' + step.target + ' seconds');
+
     if (step.type === 'hold') {
       UI.setText('s-countdown', Utils.formatClock(v.remainingSec));
-      UI.toggleClass('s-countdown', 'urgent', v.remainingSec <= Session.COUNT_IN_FROM);
+      UI.toggleClass('s-countdown', 'urgent', !waiting && v.remainingSec <= Session.COUNT_IN_FROM);
+      UI.toggleClass('s-countdown', 'waiting', waiting);
     }
   }
 
@@ -482,6 +495,12 @@ var App = (function () {
         : state.stepCount;
       handle(r.complete(Date.now(), value));
       newStep(); drawSession();
+    });
+
+    UI.on('s-begin', 'click', function () {
+      var r = state.runner; if (!r) return;
+      handle(r.begin(Date.now()));
+      drawSession();
     });
 
     UI.on('s-less', 'click', function () {

@@ -24,7 +24,8 @@ leave and both move. Nothing in the code knows those times.
 - **Today** — which phase of the morning you are in, how long is left, and today's plan
   with the target for each exercise.
 - **The session** — one exercise at a time, in type big enough to read from the floor.
-  Reps wait for a tap; holds count themselves down and beep. Twenty seconds of rest
+  Nothing starts without you: reps wait for a tap, and so does the clock on a timed
+  hold, so you can read the cues and get into position before anything counts down. Twenty seconds of rest
   between exercises. A **Too hard today** button that records the real number and does
   not count it against you.
 - **Progress** — where each exercise started, where it is now, and the line between.

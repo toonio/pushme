@@ -10,6 +10,10 @@
  *   Reps are not timed. A timer either rushes you or leaves you lying there waiting,
  *   and both teach you to resent the app. You tap when the set is done.
  *
+ *   A timed step does not start its own clock. The countdown waits for a tap, because
+ *   a plank whose timer starts the instant the rest expires is a plank you spend the
+ *   first ten seconds of getting into — and that is the part that reads as failure.
+ *
  *   An exercise done in several sets is scored by its WORST set. The target is a
  *   per-set number, so twenty push-ups followed by fourteen is not twenty; recording
  *   the best set would let progression climb away from what you can actually repeat.
@@ -19,6 +23,11 @@ var Session = (function () {
 
   var DEFAULT_REST = 20;
   var COUNT_IN_FROM = 3;      // tick cues for the last seconds of a hold or rest
+
+  /** A timed step waits for you: you tap when you are down and set. */
+  function waitsForTap(step) {
+    return !!(step && step.kind === 'work' && step.type === 'hold');
+  }
 
   /* ------------------------------ building ------------------------------- */
 
@@ -107,9 +116,15 @@ var Session = (function () {
       endedAt: null
     };
 
-    return wrap(state, buildSteps(plan, restSec), plan);
+    var steps = buildSteps(plan, restSec);
+    state.waiting = waitsForTap(steps[0]);
+
+    return wrap(state, steps, plan);
   }
 
+  /* Rebuild a session from a draft written mid-flight. A draft from before timed
+     steps waited has no `waiting` flag, which reads as false — the old behaviour,
+     which is the right way for an unknown to fail. */
   /** Rebuild a session from a draft written mid-flight. */
   function restore(draft) {
     if (!draft || !draft.state || !draft.steps) return null;
@@ -142,9 +157,25 @@ var Session = (function () {
         state.endedAt = now;
         events.push('done');
       } else if (next.kind === 'work') {
-        events.push('go');
+        state.waiting = waitsForTap(next);
+        events.push(state.waiting ? 'ready' : 'go');
       }
       return events;
+    }
+
+    function isWaiting() { return !!state.waiting && waitsForTap(step()); }
+
+    /**
+     * Start the clock on a timed step. Everything before this is free: reading the
+     * cues, finding the floor, getting an elbow under a shoulder. Returns the cue to
+     * play, so the sound marks the moment the count actually began.
+     */
+    function begin(now) {
+      if (!isWaiting()) return [];
+      state.waiting = false;
+      state.stepStartedAt = now || Date.now();
+      state.lastTick = null;
+      return ['begin'];
     }
 
     function elapsedStepSec(now) {
@@ -159,7 +190,7 @@ var Session = (function () {
     function tick(now) {
       var events = [];
       var s = step();
-      if (!s || state.finished) return events;
+      if (!s || state.finished || isWaiting()) return events;
 
       var elapsed = elapsedStepSec(now);
       var limit = (s.kind === 'rest') ? s.target : (s.type === 'hold' ? s.target : null);
@@ -206,7 +237,7 @@ var Session = (function () {
 
       if (s.kind === 'work') {
         var managed = (value === null || value === undefined)
-          ? (s.type === 'hold' ? Math.floor(elapsedStepSec(now)) : 0)
+          ? (s.type === 'hold' && !isWaiting() ? Math.floor(elapsedStepSec(now)) : 0)
           : Number(value);
         record(s.key, s.target, managed, true);
         /* Remaining sets of the SAME exercise go with it: easing off one set and then
@@ -286,6 +317,7 @@ var Session = (function () {
       var doneWork = steps.slice(0, state.index).filter(function (x) { return x.kind === 'work'; }).length;
       var elapsed = (now - state.startedAt) / 1000;
       var limit = s ? ((s.kind === 'rest') ? s.target : (s.type === 'hold' ? s.target : null)) : null;
+      var waiting = isWaiting();
 
       var nextWork = null;
       for (var i = state.index + 1; i < steps.length; i++) {
@@ -301,8 +333,13 @@ var Session = (function () {
         index: state.index,
         workDone: doneWork,
         workTotal: works.length,
-        stepElapsedSec: s ? elapsedStepSec(now) : 0,
-        remainingSec: (limit === null) ? null : Math.max(0, limit - elapsedStepSec(now)),
+        waiting: waiting,
+        /* While a timed step waits there is nothing to report but the whole of it:
+           no elapsed time to record if you bail, and a countdown showing its full
+           length rather than one already draining. */
+        stepElapsedSec: (s && !waiting) ? elapsedStepSec(now) : 0,
+        remainingSec: (limit === null) ? null
+          : (waiting ? limit : Math.max(0, limit - elapsedStepSec(now))),
         elapsedSec: elapsed,
         budgetSec: state.budgetSec,
         overBudgetSec: Math.max(0, elapsed - state.budgetSec),
@@ -313,7 +350,7 @@ var Session = (function () {
 
     return {
       state: state, steps: steps, plan: plan,
-      step: step, view: view, tick: tick,
+      step: step, view: view, tick: tick, begin: begin,
       complete: complete, easeOff: easeOff, skip: skip,
       stopNow: stopNow, abandon: abandon,
       toRecord: toRecord, draft: draft
@@ -322,6 +359,7 @@ var Session = (function () {
 
   return {
     DEFAULT_REST: DEFAULT_REST, COUNT_IN_FROM: COUNT_IN_FROM,
+    waitsForTap: waitsForTap,
     buildSteps: buildSteps, estimateSec: estimateSec, trim: trim,
     create: create, restore: restore
   };

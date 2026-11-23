@@ -56,6 +56,8 @@ s = mk();
   if (s.step() && s.step().kind === 'rest') s.tick(T0 + 21000);
 });
 is('reaches the plank', s.step().key, 'plank');
+is('which waits rather than starting itself', s.view(T0 + 21000).waiting, true);
+s.begin(T0 + 21000);                    // tap: down on the mat, start the clock
 const planked = s.view(T0 + 21000);
 is('with its full 45 seconds showing', Math.round(planked.remainingSec), 45);
 is('no cue at 10 seconds to go', s.tick(T0 + 21000 + 35000), []);
@@ -134,6 +136,51 @@ is('knows what is next', v.nextWork.key, 'proneYTW');
 is('budget in seconds', v.budgetSec, 600);
 is('not over budget after five seconds', v.overBudgetSec, 0);
 is('over budget is reported, not hidden', Math.round(mk().view(T0 + 660000).overBudgetSec), 60);
+
+console.log('');
+console.log('— a timed step waits for you to be in position —');
+/* The plank is the last of the seven work steps; skipping is the quickest way there. */
+function toPlank(sess, t) {
+  while (sess.step() && sess.step().key !== 'plank') sess.skip(t);
+  return sess;
+}
+s = toPlank(mk(), T0);
+is('half a minute of reading does not spend the plank',
+  [s.tick(T0 + 30000).length, s.view(T0 + 30000).remainingSec], [0, 45]);
+is('nor does it advance past it', s.step().key, 'plank');
+is('and nothing is quietly banked as time held', s.view(T0 + 30000).stepElapsedSec, 0);
+
+is('tapping start says so, so the screen can make a noise', s.begin(T0 + 30000), ['begin']);
+is('the clock starts from the full 45, not from when you arrived',
+  s.view(T0 + 30000).remainingSec, 45);
+is('ten seconds in, ten seconds gone', s.view(T0 + 40000).remainingSec, 35);
+is('and it still ends itself on time', s.tick(T0 + 75000), ['stop', 'done']);
+
+console.log('');
+console.log('— what waiting must not do —');
+s = toPlank(mk(), T0);
+s.easeOff(T0 + 30000, null);
+is('easing off before starting records nothing held, not the reading time',
+  s.state.records.plank.values, [0]);
+is('starting a step that is not timed does nothing at all', mk().begin(T0), []);
+is('a reps step never waits', mk().view(T0).waiting, false);
+
+s = toPlank(mk(), T0);
+is('a draft saved mid-wait comes back still waiting',
+  Session.restore(JSON.parse(JSON.stringify(s.draft()))).view(T0).waiting, true);
+is('a draft from before this existed counts down as it always did', (() => {
+  const d = JSON.parse(JSON.stringify(toPlank(mk(), T0).draft()));
+  delete d.state.waiting;
+  return Session.restore(d).view(T0).waiting;
+})(), false);
+
+console.log('');
+console.log('— the cue says which of the two moments it is —');
+const cues = [];
+s = mk();
+while (s.step() && s.step().key !== 'plank') cues.push(s.skip(T0).join(''));
+is('arriving at a reps step is go; arriving at the plank is ready',
+  [cues.indexOf('go') > -1, cues[cues.length - 1]], [true, 'ready']);
 
 console.log(fails ? `\n${fails} FAILED` : '\nall session tests pass');
 process.exit(fails ? 1 : 0);
