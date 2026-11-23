@@ -73,6 +73,12 @@ jobs:
           zip -qr "../pushme-www-${{ steps.v.outputs.version }}.zip" .
           cd ..
           unzip -l "pushme-www-${{ steps.v.outputs.version }}.zip" | head -20
+          # capgo will not install a bundle it cannot verify. GitHub publishes the
+          # same hash as each asset's `digest`, which is what the app reads; this file
+          # is the fallback for the day that field changes shape, because a broken
+          # updater cannot ship its own fix.
+          sha256sum "pushme-www-${{ steps.v.outputs.version }}.zip" > "pushme-www-${{ steps.v.outputs.version }}.zip.sha256"
+          cat "pushme-www-${{ steps.v.outputs.version }}.zip.sha256"
 
       - name: Generate the Android project
         run: |
@@ -104,6 +110,7 @@ jobs:
           files: |
             pushme-${{ steps.v.outputs.version }}.apk
             pushme-www-${{ steps.v.outputs.version }}.zip
+            pushme-www-${{ steps.v.outputs.version }}.zip.sha256
           body: |
             **pushme ${{ steps.v.outputs.version }}**
 

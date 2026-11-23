@@ -19,6 +19,45 @@ var Updater = (function () {
   var REPO = 'toonio/pushme';
   var RELEASES = 'https://api.github.com/repos/' + REPO + '/releases/latest';
   var ASSET = /^pushme-www-(.+)\.zip$/;
+  var SUM = /^pushme-www-(.+)\.zip\.sha256$/;
+  var HEX64 = /^[0-9a-f]{64}$/i;
+
+  /**
+   * What the phone needs out of a release, and why there is a checksum here at all:
+   * capgo refuses to install a bundle it cannot verify, and it refuses BEFORE any
+   * network call, so leaving it out arrives as a download failure that never touched
+   * the network. The hash is SHA-256 hex.
+   *
+   * GitHub publishes it per asset as `digest: "sha256:<hex>"`, so the ordinary release
+   * call already carries it and this costs no extra request. The .sha256 file is the
+   * fallback for the day that field changes shape, because an updater that cannot
+   * update cannot ship its own fix — that one costs a sideload.
+   *
+   * Pure, so it can be tested without a network or a phone.
+   */
+  function pickAsset(rel) {
+    var assets = (rel && rel.assets) || [];
+    var zip = assets.filter(function (a) { return ASSET.test(a.name); })[0];
+    if (!zip) return { reason: 'that release has no web bundle attached' };
+
+    var digest = String(zip.digest || '');
+    var checksum = digest.indexOf('sha256:') === 0 ? digest.slice(7).toLowerCase() : null;
+    if (checksum && !HEX64.test(checksum)) checksum = null;
+
+    var sum = assets.filter(function (a) { return SUM.test(a.name); })[0];
+    return {
+      version: ASSET.exec(zip.name)[1],
+      url: zip.browser_download_url,
+      checksum: checksum,
+      checksumUrl: checksum ? null : (sum ? sum.browser_download_url : null)
+    };
+  }
+
+  /** A .sha256 file is "<hex>  <filename>": take the hash and ignore the rest. */
+  function parseSumFile(text) {
+    var first = String(text || '').trim().split(/\s+/)[0] || '';
+    return HEX64.test(first) ? first.toLowerCase() : null;
+  }
 
   var current = { version: '0.0.0', commit: 'dev', builtAt: null };
 
@@ -82,16 +121,21 @@ var Updater = (function () {
       return r.json();
     }).then(function (rel) {
       if (!rel) return { newer: false, reason: 'nothing has been released yet' };
-      var asset = (rel.assets || []).filter(function (a) { return ASSET.test(a.name); })[0];
-      if (!asset) return { newer: false, reason: 'that release has no web bundle attached' };
+      var found = pickAsset(rel);
+      if (found.reason) return { newer: false, reason: found.reason };
 
-      var remote = ASSET.exec(asset.name)[1];
-      if (compare(remote, current.version) <= 0) {
-        return { newer: false, reason: 'you are on the latest (' + current.version + ')', version: remote };
+      if (compare(found.version, current.version) <= 0) {
+        return { newer: false, reason: 'you are on the latest (' + current.version + ')', version: found.version };
+      }
+      if (!found.checksum && !found.checksumUrl) {
+        return {
+          newer: false,
+          reason: 'release ' + found.version + ' publishes no checksum, and a bundle that cannot be verified will not install'
+        };
       }
       return {
-        newer: true, version: remote,
-        url: asset.browser_download_url,
+        newer: true, version: found.version,
+        url: found.url, checksum: found.checksum, checksumUrl: found.checksumUrl,
         notes: (rel.body || '').split('\n').slice(0, 4).join(' ').trim()
       };
     }).catch(function (e) {
@@ -103,17 +147,36 @@ var Updater = (function () {
    * Download a bundle and switch to it. `set` reloads the webview, so nothing after
    * this resolves is guaranteed to run.
    */
+  /** The hash from the release, fetching the .sha256 asset only if we have to. */
+  function resolveChecksum(found) {
+    if (found.checksum) return Promise.resolve(found.checksum);
+    if (!found.checksumUrl) {
+      return Promise.reject(new Error('no checksum is published for ' + found.version));
+    }
+    return fetch(found.checksumUrl, { cache: 'no-store' })
+      .then(function (r) { return r.text(); })
+      .then(function (t) {
+        var sum = parseSumFile(t);
+        if (!sum) throw new Error('the published checksum is not readable');
+        return sum;
+      });
+  }
+
   function apply(found) {
     var p = plugin();
     if (!p) return Promise.reject(new Error('this build cannot update itself'));
-    return p.download({ url: found.url, version: found.version })
+    return resolveChecksum(found)
+      .then(function (checksum) {
+        return p.download({ url: found.url, version: found.version, checksum: checksum });
+      })
       .then(function (bundle) { return p.set(bundle); });
   }
 
   return {
     REPO: REPO,
     available: available, loadLocal: loadLocal, version: version,
-    notifyReady: notifyReady, compare: compare, check: check, apply: apply
+    notifyReady: notifyReady, compare: compare, check: check, apply: apply,
+    pickAsset: pickAsset, parseSumFile: parseSumFile
   };
 })();
 

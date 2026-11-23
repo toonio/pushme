@@ -83,6 +83,13 @@ The app installs once and updates itself after that. Each release carries two fi
 The release feed is GitHub's own public API for this repository. That is the entire back
 end: no account, no token, nothing to keep running.
 
+A bundle is only installed if its SHA-256 matches what the release says it should be.
+GitHub publishes that hash as each asset's `digest`, so the check costs no extra request;
+the `.sha256` file attached beside the zip is the fallback if that field ever changes
+shape. This is not optional — the plugin refuses an unverified bundle, and it refuses
+before making any network call, which is why a missing hash looks exactly like a network
+failure.
+
 ## The alarm check
 
 Android will tell any app when the **next** alarm clock goes off, with no permission
