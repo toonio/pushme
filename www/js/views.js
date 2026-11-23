@@ -342,8 +342,15 @@ var Views = (function () {
   /* ---------------------------------- data ------------------------------- */
 
   function bindData(onChange) {
+    /* A download link has nowhere to go inside the installed app: a Capacitor WebView
+       has no download manager, so a blob URL silently does nothing — which is exactly
+       how the first export was lost. On the phone the text is put on screen and on the
+       clipboard instead, which needs no plugin and no permission. In a browser the
+       file still downloads. */
     UI.on('data-export', 'click', function () {
       DB.exportJSON().then(function (text) {
+        if (window.Capacitor) return showText(text);
+
         var blob = new Blob([text], { type: 'application/json' });
         var url = URL.createObjectURL(blob);
         var a = UI.el('a', { href: url, download: 'pushme-' + Utils.localDayKey(new Date()) + '.json' });
@@ -351,6 +358,30 @@ var Views = (function () {
         setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
         UI.setText('data-note', 'Exported. Keep it somewhere that is not this phone.');
       });
+    });
+
+    function showText(text) {
+      var box = UI.$('data-dump');
+      box.value = text;
+      UI.show('data-dump', true);
+      UI.show('data-copy', true);
+      UI.setText('data-note', 'Here it is. Copy it somewhere off this phone — a note to ' +
+        'yourself, an email. Pasting it into a .json file is what Import reads back.');
+    }
+
+    UI.on('data-copy', 'click', function () {
+      var box = UI.$('data-dump');
+      var done = function () { UI.setText('data-note', 'Copied. Paste it somewhere that is not this phone.'); };
+      var manual = function () {
+        box.focus(); box.select();
+        UI.setText('data-note', 'Could not reach the clipboard — it is selected, so copy it by hand.');
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(box.value).then(done).catch(manual);
+      } else {
+        box.focus(); box.select();
+        try { document.execCommand('copy') ? done() : manual(); } catch (e) { manual(); }
+      }
     });
 
     UI.on('data-import', 'click', function () { UI.$('data-file').click(); });

@@ -288,6 +288,13 @@ h2 { font-size: 0.95rem; margin: 0; font-weight: 600; letter-spacing: 0.02em; }
 /* Dimmed while it waits: the number is what you are about to spend, not what is
    already draining away. */
 .s-countdown.waiting { color: var(--dim); }
+.dump {
+  width: 100%; height: 120px; margin-top: 8px; resize: vertical;
+  background: var(--bg); color: var(--dim); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px; font-family: ui-monospace, monospace;
+  font-size: 0.7rem; white-space: pre; overflow: auto;
+}
+
 .s-ready-note {
   font-size: 0.9rem; color: var(--dim); text-align: center; margin: 6px 0 0; flex: none;
 }
