@@ -87,3 +87,43 @@ public class MainActivity extends BridgeActivity {
   fs.writeFileSync(activityPath, activity);
   console.log('rewrote MainActivity.java to register NextAlarm');
 }
+
+/* ------------------------ one stable signing key -------------------------- */
+
+/* Android treats a different signing key as a different app: it refuses to replace
+   the installed one, and the only way through is an uninstall that takes every
+   recorded session with it. `assembleDebug` with no key configured generates a fresh
+   throwaway keystore on each machine, so two CI runs produce two APKs that can never
+   upgrade one another. The key itself is a repository secret; this only points at it.
+
+   With no PUSHME_KEYSTORE in the environment — any local build — nothing is set and
+   the ordinary debug key applies. */
+const gradlePath = path.join(root, 'android', 'app', 'build.gradle');
+let gradle = fs.readFileSync(gradlePath, 'utf8');
+
+if (gradle.indexOf('signingConfigs') > -1) {
+  console.log('build.gradle already configures signing');
+} else {
+  const SIGNING = `
+    signingConfigs {
+        debug {
+            def ks = System.getenv("PUSHME_KEYSTORE")
+            if (ks) {
+                storeFile file(ks)
+                storeType "PKCS12"
+                storePassword System.getenv("PUSHME_KEYSTORE_PASSWORD")
+                keyAlias "pushme"
+                keyPassword System.getenv("PUSHME_KEYSTORE_PASSWORD")
+            }
+        }
+    }
+`;
+  const opening = gradle.match(/\nandroid\s*\{[^\n]*\n/);
+  if (!opening) {
+    console.error('could not find the android { } block in app/build.gradle');
+    process.exit(1);
+  }
+  gradle = gradle.replace(opening[0], opening[0] + SIGNING);
+  fs.writeFileSync(gradlePath, gradle);
+  console.log('pointed the signing config at PUSHME_KEYSTORE');
+}

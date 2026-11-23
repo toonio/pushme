@@ -18,3 +18,8 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 .claude/
+
+# A signing key never belongs in the repository, least of all a public one.
+*.p12
+*.jks
+*.keystore

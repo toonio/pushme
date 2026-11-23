@@ -80,6 +80,21 @@ jobs:
           sha256sum "pushme-www-${{ steps.v.outputs.version }}.zip" > "pushme-www-${{ steps.v.outputs.version }}.zip.sha256"
           cat "pushme-www-${{ steps.v.outputs.version }}.zip.sha256"
 
+      # Android refuses to replace an installed app that was signed with a different
+      # key, and the only way through is an uninstall that takes the recorded sessions
+      # with it. Without a key here, every run would mint a throwaway one.
+      - name: Write the signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ]; then
+            echo "::warning::No ANDROID_KEYSTORE_B64 secret: this APK cannot upgrade an installed one."
+            exit 0
+          fi
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/pushme.p12"
+          echo "PUSHME_KEYSTORE=$RUNNER_TEMP/pushme.p12" >> "$GITHUB_ENV"
+          echo "signing key in place"
+
       - name: Generate the Android project
         run: |
           npx cap add android
@@ -88,12 +103,22 @@ jobs:
           npx @capacitor/assets generate --android
 
       - name: Build the APK
+        env:
+          PUSHME_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
           cp app/build/outputs/apk/debug/app-debug.apk \
              "../pushme-${{ steps.v.outputs.version }}.apk"
+
+      # A signing key is not something to discover on the phone.
+      - name: Record who signed it
+        id: sig
+        run: |
+          node tools/apk-signer.js "pushme-${{ steps.v.outputs.version }}.apk" | tee signer.txt
+          FP=$(grep -o 'sha256 [0-9a-f]*' signer.txt | head -1 | cut -d' ' -f2)
+          echo "fingerprint=$FP" >> "$GITHUB_OUTPUT"
 
       - name: Keep the artefacts even if the release step is skipped
         uses: actions/upload-artifact@v4
@@ -119,4 +144,8 @@ jobs:
             - `pushme-www-${{ steps.v.outputs.version }}.zip` — the web bundle. The
               installed app finds this by itself: Settings → Updates → Check.
 
-            This is a debug-signed build for sideloading, not a Play Store release.
+            Signed with `${{ steps.sig.outputs.fingerprint }}`. An APK with a different
+            fingerprint cannot upgrade this one — Android treats it as a different app
+            and asks for an uninstall, which erases the recorded sessions.
+
+            This is a self-signed build for sideloading, not a Play Store release.

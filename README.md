@@ -129,6 +129,20 @@ To cut a release, push a tag:
 git tag v0.2.0 && git push origin v0.2.0
 ```
 
+### Signing
+
+Every APK is signed with one fixed key, held as the repository secrets
+`ANDROID_KEYSTORE_B64` and `ANDROID_KEYSTORE_PASSWORD`. This is not a nicety. Android
+treats a different signing key as a different app: it refuses to replace the installed
+one, and the only way through is an uninstall, which erases every recorded session. A
+build with no key configured mints a throwaway keystore, so two such builds can never
+upgrade one another — which is exactly what happened between 0.1.0 and 0.3.0.
+
+Each release prints its signing fingerprint and records it on the release page, so a
+key change is visible before anyone installs anything rather than after. **Keep a copy
+of the keystore off this machine.** Losing it costs one more uninstall, and with it
+whatever history has not been exported.
+
 CI generates the Android project (`android/` is not committed — 40 MB of Gradle
 scaffolding would bury the ten files that are actually this app), applies the native
 edits from [`tools/patch-android.js`](tools/patch-android.js), builds a debug-signed APK
